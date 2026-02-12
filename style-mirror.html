@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Style Mirror - AI Writing Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Space Grotesk', sans-serif; 
+            background-color: #f0f0f0;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        h1, h2, h3, .mono-font {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Neobrutalist Utilities */
+        .neo-card {
+            background: white;
+            border: 3px solid black;
+            box-shadow: 6px 6px 0px 0px black;
+            transition: all 0.2s ease;
+        }
+        
+        .neo-btn {
+            border: 2px solid black;
+            box-shadow: 4px 4px 0px 0px black;
+            transition: all 0.1s ease;
+            font-weight: 700;
+        }
+        
+        .neo-btn:hover:not(:disabled) {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px 0px black;
+        }
+
+        .neo-btn:active:not(:disabled) {
+            transform: translate(2px, 2px);
+            box-shadow: 0px 0px 0px 0px black;
+        }
+
+        .neo-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+            background: #e2e8f0;
+        }
+
+        .neo-input {
+            border: 2px solid black;
+            background: #fff;
+            box-shadow: 2px 2px 0px 0px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+        .neo-input:focus {
+            box-shadow: 4px 4px 0px 0px black;
+            outline: none;
+        }
+
+        .tab-btn.active {
+            background-color: #bfdbfe; /* blue-200 */
+            font-weight: bold;
+            border: 2px solid black;
+            box-shadow: 2px 2px 0px 0px black;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: #fff; border-left: 2px solid black; }
+        ::-webkit-scrollbar-thumb { background: black; border: 2px solid white; }
+        ::-webkit-scrollbar-thumb:hover { background: #333; }
+        
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid black;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen text-black p-4 md:p-8">
+
+    <!-- App Container -->
+    <div id="app" class="max-w-7xl mx-auto">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+            <div class="neo-card p-4 bg-yellow-300 rotate-1 rounded-lg">
+                <div class="flex items-center gap-3">
+                    <div class="bg-black text-white p-2 rounded">
+                        <i data-lucide="pen-tool" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-black uppercase tracking-tight">Style Mirror</h1>
+                        <p class="text-sm font-bold opacity-75">Define Voice. Write Real.</p>
+                    </div>
+                </div>
+            </div>
+            
+             <button id="apiKeyBtn" class="neo-btn bg-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-slate-50">
+                <i data-lucide="key" class="w-4 h-4"></i>
+                <span>Configure API Key</span>
+            </button>
+        </header>
+
+        <!-- Main Layout (Bento Grid) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8">
+            
+            <!-- COLUMN 1: WORKFLOW (The "Input" Station) -->
+            <div class="lg:col-span-4 flex flex-col gap-6">
+                <!-- Step Label -->
+                <div class="bg-black text-white px-4 py-1 inline-block w-fit text-sm font-bold uppercase tracking-wider transform -rotate-2 border-2 border-black shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]">
+                    Step 1: The Source
+                </div>
+
+                <div class="neo-card rounded-xl overflow-hidden flex-1 flex flex-col bg-white">
+                    <!-- Method Tabs -->
+                    <div class="grid grid-cols-5 border-b-2 border-black bg-slate-100">
+                        <button onclick="switchTab('analyze')" id="tab-analyze" class="tab-btn active p-3 flex justify-center items-center hover:bg-blue-100 transition-colors border-r-2 border-black" title="Analyze Text">
+                            <i data-lucide="search" class="w-5 h-5"></i>
+                        </button>
+                        <button onclick="switchTab('quickwrite')" id="tab-quickwrite" class="tab-btn p-3 flex justify-center items-center hover:bg-emerald-100 transition-colors border-r-2 border-black" title="Quick Write">
+                            <i data-lucide="edit-3" class="w-5 h-5"></i>
+                        </button>
+                        <button onclick="switchTab('questionnaire')" id="tab-questionnaire" class="tab-btn p-3 flex justify-center items-center hover:bg-violet-100 transition-colors border-r-2 border-black" title="Questionnaire">
+                            <i data-lucide="list-checks" class="w-5 h-5"></i>
+                        </button>
+                        <button onclick="switchTab('mimic')" id="tab-mimic" class="tab-btn p-3 flex justify-center items-center hover:bg-amber-100 transition-colors border-r-2 border-black" title="Mimic Persona">
+                            <i data-lucide="users" class="w-5 h-5"></i>
+                        </button>
+                         <button onclick="switchTab('preset')" id="tab-preset" class="tab-btn p-3 flex justify-center items-center hover:bg-rose-100 transition-colors" title="Presets">
+                            <i data-lucide="layout-template" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <!-- Input Content -->
+                    <div class="p-6 flex-1 flex flex-col">
+                        
+                        <!-- 1. Analyze -->
+                        <div id="view-analyze" class="view-section flex-1 flex flex-col">
+                            <h3 class="font-bold text-lg mb-2">Analyze Existing Text</h3>
+                            <p class="text-sm text-gray-600 mb-4">Paste an email, essay, or blog post you've written.</p>
+                            <textarea id="sampleInput" class="neo-input w-full flex-1 p-4 rounded-lg text-sm code-font mb-4 resize-none bg-slate-50" placeholder="Paste text here... (min 100 words)"></textarea>
+                            <button onclick="analyzeText()" class="neo-btn bg-blue-400 w-full py-3 rounded-lg flex justify-center items-center gap-2">
+                                <span id="analyzeBtnText">EXTRACT STYLE DNA</span>
+                                <div id="analyzeLoader" class="loader hidden"></div>
+                            </button>
+                        </div>
+
+                        <!-- 2. Quick Write -->
+                        <div id="view-quickwrite" class="view-section hidden flex-1 flex flex-col">
+                            <h3 class="font-bold text-lg mb-2">Quick Write Challenge</h3>
+                            <div class="bg-emerald-100 border-2 border-black p-3 rounded-lg mb-4">
+                                <p class="text-sm font-bold">Prompt: "Describe your favorite meal. What makes it special?"</p>
+                            </div>
+                            <textarea id="quickWriteInput" class="neo-input w-full flex-1 p-4 rounded-lg text-sm code-font mb-4 resize-none bg-slate-50" placeholder="Start writing..."></textarea>
+                            <button onclick="analyzeQuickWrite()" class="neo-btn bg-emerald-400 w-full py-3 rounded-lg flex justify-center items-center gap-2">
+                                <span>ANALYZE THIS</span>
+                                <div id="quickWriteLoader" class="loader hidden"></div>
+                            </button>
+                        </div>
+
+                        <!-- 3. Questionnaire -->
+                        <div id="view-questionnaire" class="view-section hidden flex-1 flex flex-col gap-6">
+                            <h3 class="font-bold text-lg">Style Questionnaire</h3>
+                            
+                            <div>
+                                <div class="flex justify-between font-bold text-sm mb-2">
+                                    <span>Serious</span>
+                                    <span>Humorous</span>
+                                </div>
+                                <input type="range" id="q-tone" min="1" max="5" value="3" class="w-full h-4 bg-slate-200 rounded-full appearance-none border-2 border-black cursor-pointer accent-violet-600">
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between font-bold text-sm mb-2">
+                                    <span>Casual</span>
+                                    <span>Academic</span>
+                                </div>
+                                <input type="range" id="q-formal" min="1" max="5" value="3" class="w-full h-4 bg-slate-200 rounded-full appearance-none border-2 border-black cursor-pointer accent-violet-600">
+                            </div>
+
+                            <button onclick="processQuestionnaire()" class="neo-btn bg-violet-400 w-full py-3 rounded-lg mt-auto">CREATE PROFILE</button>
+                        </div>
+
+                        <!-- 4. Mimic -->
+                        <div id="view-mimic" class="view-section hidden flex-1 flex flex-col">
+                            <h3 class="font-bold text-lg mb-4">Mimic A Persona</h3>
+                            <select id="mimicSelect" class="neo-input w-full p-3 rounded-lg mb-4 font-bold bg-amber-50">
+                                <option value="Steve Jobs">Steve Jobs</option>
+                                <option value="William Shakespeare">William Shakespeare</option>
+                                <option value="Ernest Hemingway">Ernest Hemingway</option>
+                                <option value="Oscar Wilde">Oscar Wilde</option>
+                                <option value="Rick Sanchez">Rick Sanchez (Rick & Morty)</option>
+                                <option value="custom">Custom...</option>
+                            </select>
+                            <input id="mimicCustom" type="text" class="neo-input w-full p-3 rounded-lg mb-4 hidden" placeholder="Enter Name...">
+                            <button onclick="processMimic()" class="neo-btn bg-amber-400 w-full py-3 rounded-lg mt-auto flex justify-center items-center gap-2">
+                                <span>MIMIC STYLE</span>
+                                <div id="mimicLoader" class="loader hidden"></div>
+                            </button>
+                        </div>
+
+                         <!-- 5. Presets -->
+                         <div id="view-preset" class="view-section hidden flex-1 flex flex-col">
+                             <h3 class="font-bold text-lg mb-4">Select Preset</h3>
+                             <div class="grid grid-cols-1 gap-3">
+                                <button onclick="applyPreset('academic')" class="neo-btn bg-white text-left p-3 rounded-lg hover:bg-rose-100">
+                                    <div class="font-black text-sm">ACADEMIC</div>
+                                    <div class="text-xs">Formal, objective, structured.</div>
+                                </button>
+                                <button onclick="applyPreset('marketing')" class="neo-btn bg-white text-left p-3 rounded-lg hover:bg-rose-100">
+                                    <div class="font-black text-sm">MARKETING</div>
+                                    <div class="text-xs">Punchy, persuasive, bold.</div>
+                                </button>
+                                <button onclick="applyPreset('story')" class="neo-btn bg-white text-left p-3 rounded-lg hover:bg-rose-100">
+                                    <div class="font-black text-sm">STORYTELLER</div>
+                                    <div class="text-xs">Descriptive, emotional, flowy.</div>
+                                </button>
+                             </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMN 2: DNA (The "Dashboard") -->
+            <div class="lg:col-span-4 flex flex-col gap-6">
+                <!-- Step Label -->
+                <div class="bg-black text-white px-4 py-1 inline-block w-fit text-sm font-bold uppercase tracking-wider transform rotate-1 border-2 border-black shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]">
+                    Step 2: Style DNA
+                </div>
+
+                <div class="neo-card rounded-xl overflow-hidden flex-1 flex flex-col relative bg-white">
+                    <div class="p-4 border-b-2 border-black bg-purple-100 flex justify-between items-center">
+                        <h2 class="font-black text-lg flex items-center gap-2">
+                            <i data-lucide="dna" class="w-5 h-5"></i>
+                            DNA PROFILE
+                        </h2>
+                        <button onclick="downloadProfile()" class="text-xs font-bold underline hover:text-purple-600">SAVE .JSON</button>
+                    </div>
+
+                    <div class="p-4 flex-1 overflow-y-auto bg-white">
+                        <div id="profile-placeholder" class="h-full flex flex-col items-center justify-center text-slate-400 text-center p-6 border-2 border-dashed border-slate-300 rounded-xl">
+                            <i data-lucide="fingerprint" class="w-16 h-16 mb-4 opacity-50"></i>
+                            <p class="font-bold text-black">NO DNA EXTRACTED</p>
+                            <p class="text-sm">Complete Step 1 to generate.</p>
+                        </div>
+
+                        <div id="profile-content" class="hidden space-y-4">
+                            <!-- DNA Fields -->
+                            <div class="bg-slate-50 p-3 border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                                <label class="text-xs font-black bg-black text-white px-2 py-0.5 rounded-sm inline-block mb-2">TONE</label>
+                                <textarea id="dna-tone" class="w-full bg-transparent text-sm resize-none focus:outline-none font-medium" rows="2"></textarea>
+                            </div>
+                             <div class="bg-slate-50 p-3 border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                                <label class="text-xs font-black bg-black text-white px-2 py-0.5 rounded-sm inline-block mb-2">STRUCTURE</label>
+                                <textarea id="dna-structure" class="w-full bg-transparent text-sm resize-none focus:outline-none font-medium" rows="2"></textarea>
+                            </div>
+                             <div class="bg-slate-50 p-3 border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                                <label class="text-xs font-black bg-black text-white px-2 py-0.5 rounded-sm inline-block mb-2">VOCABULARY</label>
+                                <textarea id="dna-vocab" class="w-full bg-transparent text-sm resize-none focus:outline-none font-medium" rows="2"></textarea>
+                            </div>
+                             <div class="bg-slate-50 p-3 border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                                <label class="text-xs font-black bg-black text-white px-2 py-0.5 rounded-sm inline-block mb-2">GRAMMAR</label>
+                                <textarea id="dna-grammar" class="w-full bg-transparent text-sm resize-none focus:outline-none font-medium" rows="2"></textarea>
+                            </div>
+                             <div class="bg-slate-50 p-3 border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                                <label class="text-xs font-black bg-black text-white px-2 py-0.5 rounded-sm inline-block mb-2">QUIRKS</label>
+                                <textarea id="dna-human" class="w-full bg-transparent text-sm resize-none focus:outline-none font-medium" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMN 3: OUTPUT (The "Printer") -->
+            <div class="lg:col-span-4 flex flex-col gap-6">
+                <!-- Step Label -->
+                <div class="bg-black text-white px-4 py-1 inline-block w-fit text-sm font-bold uppercase tracking-wider transform -rotate-2 border-2 border-black shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]">
+                    Step 3: Creation
+                </div>
+
+                <div class="neo-card rounded-xl overflow-hidden flex-1 flex flex-col bg-white">
+                    <div class="p-4 border-b-2 border-black bg-orange-100">
+                        <h2 class="font-black text-lg flex items-center gap-2">
+                            <i data-lucide="zap" class="w-5 h-5"></i>
+                            GENERATOR
+                        </h2>
+                    </div>
+                    
+                    <div class="p-6 flex flex-col h-full gap-4 bg-white">
+                        
+                        <div class="space-y-1">
+                            <label class="font-bold text-sm">TOPIC</label>
+                            <input type="text" id="topicInput" class="neo-input w-full p-3 rounded-lg text-sm" placeholder="E.g., Resignation email...">
+                        </div>
+                        
+                        <div class="space-y-1">
+                             <label class="font-bold text-sm">FORMAT</label>
+                             <div class="relative">
+                                 <select id="formatInput" class="neo-input w-full p-3 rounded-lg text-sm appearance-none bg-white">
+                                     <option value="Paragraph">Paragraph</option>
+                                     <option value="Email">Email</option>
+                                     <option value="Blog Post">Blog Post</option>
+                                     <option value="Essay">Short Essay</option>
+                                     <option value="Tweet">Tweet / X Post</option>
+                                 </select>
+                                 <i data-lucide="chevron-down" class="absolute right-3 top-3 w-4 h-4 pointer-events-none"></i>
+                             </div>
+                        </div>
+
+                        <button onclick="generateContent()" id="generateBtn" disabled class="neo-btn bg-black text-white hover:bg-gray-800 w-full py-4 rounded-lg mt-2 flex justify-center items-center gap-2">
+                            <i data-lucide="wand-2" class="w-4 h-4"></i>
+                            <span>GENERATE CONTENT</span>
+                            <div id="genLoader" class="loader hidden" style="border-color: #333; border-top-color: white;"></div>
+                        </button>
+
+                        <div class="flex-1 mt-4 relative group">
+                            <div class="absolute inset-0 bg-slate-100 border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]"></div>
+                            
+                            <!-- Result Container -->
+                            <div class="relative h-full z-10 p-4 overflow-hidden flex flex-col">
+                                <div id="result-placeholder" class="flex-1 flex items-center justify-center text-slate-400 text-sm font-bold opacity-50">
+                                    // WAITING FOR INPUT
+                                </div>
+                                <div id="result-content" class="h-full overflow-y-auto text-sm leading-relaxed prose prose-sm max-w-none hidden font-serif"></div>
+                            </div>
+                            
+                            <!-- Copy Button -->
+                            <button onclick="copyResult()" class="absolute top-2 right-2 z-20 neo-btn bg-white p-2 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity" title="Copy text">
+                                <i data-lucide="copy" class="w-4 h-4 text-black"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- API Key Modal -->
+        <div id="apiModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50">
+            <div class="neo-card bg-white p-8 w-full max-w-md mx-4 rounded-xl relative">
+                <div class="absolute -top-4 -left-4 bg-yellow-300 border-2 border-black px-3 py-1 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    CONFIGURATION
+                </div>
+                <h3 class="text-xl font-black mb-4 mt-2">API KEY REQUIRED</h3>
+                <p class="text-sm font-medium text-slate-600 mb-6">Enter your Gemini API key to power the AI engines. We don't store this.</p>
+                
+                <input type="password" id="apiKeyInput" class="neo-input w-full p-4 rounded-lg text-sm mb-6 code-font" placeholder="sk-...">
+                
+                <div class="flex gap-4">
+                    <button onclick="closeModal()" class="neo-btn bg-white w-full py-3 rounded-lg">CANCEL</button>
+                    <button onclick="saveKey()" class="neo-btn bg-black text-white hover:bg-gray-800 w-full py-3 rounded-lg">CONNECT</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // State
+        let apiKey = "";
+        let currentStyle = {};
+        let activeTab = 'analyze';
+
+        // --- UI Interaction ---
+
+        function switchTab(tabId) {
+            activeTab = tabId;
+            
+            // Update Tab Buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.remove('bg-blue-100', 'bg-emerald-100', 'bg-violet-100', 'bg-amber-100', 'bg-rose-100'); // Clean cleanup
+            });
+
+            // Highlight active tab with specific colors
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            activeBtn.classList.add('active');
+            
+            // Show/Hide Views
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+
+            // Handle specific logic for mimic custom input
+            const mimicSelect = document.getElementById('mimicSelect');
+            const mimicCustom = document.getElementById('mimicCustom');
+            if (tabId === 'mimic') {
+                mimicSelect.addEventListener('change', (e) => {
+                    if (e.target.value === 'custom') {
+                        mimicCustom.classList.remove('hidden');
+                    } else {
+                        mimicCustom.classList.add('hidden');
+                    }
+                });
+            }
+        }
+        
+        // Initial Tab Set
+        switchTab('analyze');
+
+        // Modal Logic
+        const modal = document.getElementById('apiModal');
+        document.getElementById('apiKeyBtn').onclick = () => modal.classList.remove('hidden', 'flex');
+        document.getElementById('apiKeyBtn').onclick = () => modal.style.display = 'flex';
+        function closeModal() { modal.style.display = 'none'; }
+        function saveKey() {
+            apiKey = document.getElementById('apiKeyInput').value;
+            if(apiKey) {
+                closeModal();
+                // alert('API Key saved for this session.'); // Brutalist style doesn't need alerts, maybe just close
+            }
+        }
+
+        // --- Core Logic: Analysis ---
+
+        async function analyzeText() {
+            const text = document.getElementById('sampleInput').value;
+            if (!text || text.length < 50) return alert("Please enter at least 50 words.");
+            
+            await performAnalysis(text, 'analyzeBtnText', 'analyzeLoader');
+        }
+
+        async function analyzeQuickWrite() {
+            const text = document.getElementById('quickWriteInput').value;
+            if (!text || text.length < 50) return alert("Please write a bit more (min 50 words).");
+            
+            await performAnalysis(text, null, 'quickWriteLoader');
+        }
+
+        async function performAnalysis(textSample, btnTextId, loaderId) {
+            if (!apiKey) return modal.style.display = 'flex';
+            
+            toggleLoader(loaderId, true);
+            if(btnTextId) document.getElementById(btnTextId).textContent = "EXTRACTING...";
+
+            const systemPrompt = `You are an expert Writing Style Analyzer. 
+            Analyze the provided text and extract a structured "Style DNA" profile.
+            Return ONLY a JSON object with these keys:
+            - tone: (string, comma separated keywords)
+            - structure: (string, description of sentence length/complexity)
+            - vocab: (string, description of vocabulary choice e.g. simple, academic, archaic)
+            - grammar: (string, specific syntax quirks)
+            - descriptive: (string, how they describe things)
+            - human_quirks: (string, specific things that make it sound human like contractions, specific transition words)
+            
+            Do not include markdown formatting like \`\`\`json. Just the raw JSON string.`;
+
+            try {
+                const response = await callGemini(systemPrompt, textSample);
+                const data = JSON.parse(response);
+                populateProfile(data);
+            } catch (error) {
+                console.error(error);
+                alert("Error analyzing text. Please try again.");
+            } finally {
+                toggleLoader(loaderId, false);
+                if(btnTextId) document.getElementById(btnTextId).textContent = "EXTRACT STYLE DNA";
+            }
+        }
+
+        function processQuestionnaire() {
+            // Map slider values to text descriptors
+            const tones = ["Very Serious", "Serious", "Neutral", "Lighthearted", "Very Humorous"];
+            const formalities = ["Very Casual/Slang", "Casual", "Neutral", "Formal", "Highly Academic"];
+            
+            const tVal = document.getElementById('q-tone').value;
+            const fVal = document.getElementById('q-formal').value;
+            
+            const profile = {
+                tone: `${tones[tVal-1]}, ${formalities[fVal-1]}`,
+                structure: `Matches a ${formalities[fVal-1]} context.`,
+                vocab: `Consistent with a ${tones[tVal-1]} tone.`,
+                grammar: "Standard grammar rules apply.",
+                descriptive: "Moderate use of adjectives.",
+                human_quirks: "Use natural contractions."
+            };
+            
+            populateProfile(profile);
+        }
+
+        async function processMimic() {
+            const select = document.getElementById('mimicSelect');
+            const custom = document.getElementById('mimicCustom');
+            const target = select.value === 'custom' ? custom.value : select.value;
+            
+            if (!apiKey) return modal.style.display = 'flex';
+            if (!target) return alert("Please select or enter a persona.");
+
+            toggleLoader('mimicLoader', true);
+
+            const prompt = `Generate a JSON Writing Style Profile for: ${target}. 
+            Return ONLY JSON with keys: tone, structure, vocab, grammar, descriptive, human_quirks.`;
+
+            try {
+                const response = await callGemini(prompt, "Generate profile.");
+                const data = JSON.parse(response);
+                populateProfile(data);
+            } catch (e) {
+                alert("Error generating persona.");
+            } finally {
+                toggleLoader('mimicLoader', false);
+            }
+        }
+
+        function applyPreset(type) {
+            const presets = {
+                academic: {
+                    tone: "Objective, Authoritative, Serious",
+                    structure: "Complex compound sentences. Passive voice allowed where appropriate.",
+                    vocab: "Domain-specific terminology, elevated register.",
+                    grammar: "Strict adherence to formal grammar. No contractions.",
+                    descriptive: "Precise, factual, devoid of emotional language.",
+                    human_quirks: "Use transitional phrases like 'Furthermore', 'Conversely', 'In conclusion'."
+                },
+                marketing: {
+                    tone: "Persuasive, Exciting, Urgent",
+                    structure: "Short, punchy sentences. frequent paragraph breaks.",
+                    vocab: "Power words, simple language, action verbs.",
+                    grammar: "Active voice. Fragments allowed for effect.",
+                    descriptive: "Focus on benefits and sensory details.",
+                    human_quirks: "Use 'You' frequently to address reader directly."
+                },
+                story: {
+                    tone: "Narrative, Emotional, Immersive",
+                    structure: "Varied sentence length for pacing.",
+                    vocab: "Evocative, sensory-rich words.",
+                    grammar: "Fluid, allows for stylistic fragments.",
+                    descriptive: "Show, don't tell. Heavy use of imagery.",
+                    human_quirks: "Internal monologue, dialogue-like phrasing."
+                }
+            };
+            populateProfile(presets[type]);
+        }
+
+        // --- Core Logic: UI Updates ---
+
+        function populateProfile(data) {
+            document.getElementById('profile-placeholder').classList.add('hidden');
+            document.getElementById('profile-content').classList.remove('hidden');
+
+            document.getElementById('dna-tone').value = data.tone || "";
+            document.getElementById('dna-structure').value = data.structure || "";
+            document.getElementById('dna-vocab').value = data.vocab || "";
+            document.getElementById('dna-grammar').value = data.grammar || "";
+            // Keep descriptive if it exists, otherwise empty
+            if(document.getElementById('dna-descriptive')) {
+                 document.getElementById('dna-descriptive').value = data.descriptive || "";
+            }
+            document.getElementById('dna-human').value = data.human_quirks || "";
+            
+            // Enable Generate Button
+            const genBtn = document.getElementById('generateBtn');
+            genBtn.disabled = false;
+            
+            // Visual feedback
+            // Smooth scroll on mobile only
+            if(window.innerWidth < 1024) {
+                 const dnaSection = document.querySelector('.lg\\:col-span-4:nth-child(2)'); 
+                 dnaSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function getProfileFromUI() {
+            return {
+                tone: document.getElementById('dna-tone').value,
+                structure: document.getElementById('dna-structure').value,
+                vocab: document.getElementById('dna-vocab').value,
+                grammar: document.getElementById('dna-grammar').value,
+                human_quirks: document.getElementById('dna-human').value,
+            };
+        }
+
+        // --- Core Logic: Generation ---
+
+        async function generateContent() {
+            const topic = document.getElementById('topicInput').value;
+            const format = document.getElementById('formatInput').value;
+            const profile = getProfileFromUI();
+
+            if (!apiKey) return modal.style.display = 'flex';
+            if (!topic) return alert("Please enter a topic.");
+
+            toggleLoader('genLoader', true);
+            
+            const systemPrompt = `Act as a professional Ghostwriter.
+            I will provide a "Style Profile" (DNA) and a Request.
+            You MUST write the content adhering STRICTLY to the profile.
+            
+            STYLE PROFILE:
+            - Tone: ${profile.tone}
+            - Structure: ${profile.structure}
+            - Vocabulary: ${profile.vocab}
+            - Grammar/Syntax: ${profile.grammar}
+            - Human Quirks: ${profile.human_quirks}
+            
+            REQUEST:
+            Write a ${format} about: ${topic}.
+            
+            Return only the content, formatted in Markdown.`;
+
+            try {
+                const response = await callGemini(systemPrompt, "Go.");
+                
+                document.getElementById('result-placeholder').classList.add('hidden');
+                const resultDiv = document.getElementById('result-content');
+                resultDiv.classList.remove('hidden');
+                resultDiv.innerHTML = marked.parse(response);
+
+            } catch (e) {
+                console.error(e);
+                alert("Error generating content.");
+            } finally {
+                toggleLoader('genLoader', false);
+            }
+        }
+
+        // --- Utilities ---
+
+        async function callGemini(system, userMsg) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: userMsg }] }],
+                systemInstruction: { parts: [{ text: system }] }
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error("API Error");
+            const data = await response.json();
+            
+            let text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            
+            // Clean JSON if needed
+            if (text && (text.startsWith('```json') || text.startsWith('{'))) {
+                 text = text.replace(/```json/g, '').replace(/```/g, '');
+            }
+            return text;
+        }
+
+        function toggleLoader(id, show) {
+            const el = document.getElementById(id);
+            if (el) show ? el.classList.remove('hidden') : el.classList.add('hidden');
+        }
+
+        function downloadProfile() {
+            const profile = getProfileFromUI();
+            if(!profile.tone) return alert("No profile generated yet.");
+            
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(profile, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "my_style_dna.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function copyResult() {
+            const content = document.getElementById('result-content').innerText;
+            if(!content) return;
+            navigator.clipboard.writeText(content);
+            // Visual feedback handled by button hover state in this style
+        }
+
+    </script>
+</body>
+</html>
