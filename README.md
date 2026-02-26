@@ -2,7 +2,7 @@
 
 AI-powered writing style analyzer and content generator. Paste your writing, extract your "Style DNA", then generate new content that matches your voice.
 
-**[Try it live](https://michael-borck.github.io/style-mirror/)**
+**[Try it live](https://stylemirror.serveur.au)**
 
 ## How It Works
 
