@@ -6,16 +6,27 @@ AI-powered writing style analyzer and content generator. Paste your writing, ext
 
 ## How It Works
 
-1. **Source** — Feed in your writing through one of five pathways:
-   - **Analyze Text** — Paste existing writing to extract your style
-   - **Quick Write** — Respond to a prompt so the AI can study your voice
-   - **Questionnaire** — Set tone and formality with sliders
-   - **Mimic Persona** — Adopt the style of a famous writer or character
-   - **Presets** — Choose from Academic, Marketing, or Storyteller profiles
+The app follows a three-column workflow: **Source → Style DNA → Generate**.
 
-2. **Style DNA** — The app extracts a structured profile: tone, structure, vocabulary, grammar, and quirks. You can edit any field before generating.
+### Step 1: The Source
 
-3. **Generate** — Pick a topic and format (email, blog post, essay, tweet) and the AI writes content matching your style profile.
+Choose one of five tabs to define your writing style (the icon row at the top of the first column):
+
+| Tab | Icon | What it does |
+|-----|------|-------------|
+| **Analyze** | Search | Paste an existing piece of your writing (email, essay, blog post) and the AI extracts your style |
+| **Quick Write** | Pencil | Respond to a writing prompt so the AI can study your voice from scratch |
+| **Questionnaire** | Checklist | No AI needed — use sliders to set tone (serious↔humorous) and formality (casual↔academic) |
+| **Mimic** | People | Pick a famous writer or character (Hemingway, Oscar Wilde, Rick Sanchez...) and the AI builds their style profile |
+| **Presets** | Template | One-click profiles for common styles: Academic, Marketing, or Storyteller |
+
+### Step 2: Style DNA
+
+The middle column shows your extracted style profile — tone, structure, vocabulary, grammar, and quirks. Every field is editable, so you can tweak it before generating.
+
+### Step 3: Generate
+
+Pick a topic and format (paragraph, email, blog post, essay, or tweet) and hit **Generate**. The AI writes content matching your style profile. Copy or download the result.
 
 ## Supported LLM Providers
 
