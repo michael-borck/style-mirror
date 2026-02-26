@@ -1,79 +1,56 @@
-# style-mirror
+# Style Mirror
 
-A web-based tool that analyzes and mirrors writing styles through an interactive HTML interface. Style Mirror helps users understand different writing patterns and provides conversation examples to demonstrate various communication styles.
+AI-powered writing style analyzer and content generator. Paste your writing, extract your "Style DNA", then generate new content that matches your voice.
 
-## Description
+**[Try it live](https://michael-borck.github.io/style-mirror/)**
 
-Style Mirror is a client-side application that allows users to analyze writing styles and see how different approaches to communication can be applied. The tool provides an intuitive interface for exploring various writing techniques and includes practical conversation examples to illustrate different stylistic approaches.
+## How It Works
 
-## Installation
+1. **Source** — Feed in your writing through one of five pathways:
+   - **Analyze Text** — Paste existing writing to extract your style
+   - **Quick Write** — Respond to a prompt so the AI can study your voice
+   - **Questionnaire** — Set tone and formality with sliders
+   - **Mimic Persona** — Adopt the style of a famous writer or character
+   - **Presets** — Choose from Academic, Marketing, or Storyteller profiles
 
-Since this is a client-side HTML application, no complex installation is required. Simply clone the repository and open the HTML file in your web browser.
+2. **Style DNA** — The app extracts a structured profile: tone, structure, vocabulary, grammar, and quirks. You can edit any field before generating.
 
+3. **Generate** — Pick a topic and format (email, blog post, essay, tweet) and the AI writes content matching your style profile.
+
+## Supported LLM Providers
+
+Style Mirror is provider-agnostic. Configure your preferred backend in the app:
+
+| Provider | API Key | Notes |
+|----------|---------|-------|
+| **Google Gemini** | Required | Free tier at [ai.google.dev](https://ai.google.dev) |
+| **Ollama** (local) | None | Free & private. Run `OLLAMA_ORIGINS=* ollama serve` for CORS |
+| **OpenAI-compatible** | Varies | Works with Groq (free tier), Together.ai, LM Studio, etc. |
+
+Configuration is saved to `localStorage` so you don't re-enter it each visit.
+
+## Setup
+
+No build step. It's a single HTML file.
+
+**GitHub Pages:**
+Enable Pages in your repo settings (Settings > Pages > deploy from `main`). Done.
+
+**Local:**
 ```bash
 git clone https://github.com/michael-borck/style-mirror.git
-cd style-mirror
+open style-mirror/index.html
 ```
 
-## Usage
+## Tech Stack
 
-### Basic Usage
-
-1. Open the `style-mirror.html` file in your web browser:
-
-```bash
-open style-mirror.html
-```
-
-Or simply double-click the file in your file manager.
-
-2. The application will load in your browser, providing an interface for style analysis and mirroring.
-
-### Conversation Examples
-
-The repository includes conversation examples in `conversation.md` that demonstrate different writing styles and approaches. These examples can be used as reference material when working with the style mirror tool.
-
-### Browser Compatibility
-
-The application works with modern web browsers including:
-- Chrome/Chromium
-- Firefox
-- Safari
-- Edge
-
-## Features
-
-- Interactive HTML interface for style analysis
-- Writing style comparison and mirroring capabilities
-- Conversation examples for practical learning
-- Client-side processing (no server required)
-- Responsive design for various screen sizes
-
-## File Structure
-
-```
-style-mirror/
-├── LICENSE
-├── README.md
-├── conversation.md
-└── style-mirror.html
-```
-
-- `style-mirror.html` - Main application interface
-- `conversation.md` - Example conversations demonstrating different styles
-- `LICENSE` - MIT license file
-- `README.md` - This documentation file
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. When contributing:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly in multiple browsers
-5. Submit a pull request
+- Single static HTML file — no backend, no build tools
+- [Tailwind CSS](https://tailwindcss.com) (CDN) — styling
+- [Lucide Icons](https://lucide.dev) — iconography
+- [Marked.js](https://marked.js.org) — markdown rendering
+- Space Grotesk + JetBrains Mono — typography
+- Neobrutalist design system
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE) for details.
