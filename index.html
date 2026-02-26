@@ -111,8 +111,8 @@
             </div>
             
              <button id="apiKeyBtn" class="neo-btn bg-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-slate-50">
-                <i data-lucide="key" class="w-4 h-4"></i>
-                <span>Configure API Key</span>
+                <i data-lucide="settings" class="w-4 h-4"></i>
+                <span id="providerBtnLabel">Gemini ▾</span>
             </button>
         </header>
 
@@ -351,20 +351,48 @@
 
         </div>
 
-        <!-- API Key Modal -->
+        <!-- Provider Config Modal -->
         <div id="apiModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50">
             <div class="neo-card bg-white p-8 w-full max-w-md mx-4 rounded-xl relative">
                 <div class="absolute -top-4 -left-4 bg-yellow-300 border-2 border-black px-3 py-1 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                     CONFIGURATION
                 </div>
-                <h3 class="text-xl font-black mb-4 mt-2">API KEY REQUIRED</h3>
-                <p class="text-sm font-medium text-slate-600 mb-6">Enter your Gemini API key to power the AI engines. We don't store this.</p>
-                
-                <input type="password" id="apiKeyInput" class="neo-input w-full p-4 rounded-lg text-sm mb-6 code-font" placeholder="sk-...">
-                
-                <div class="flex gap-4">
+                <h3 class="text-xl font-black mb-4 mt-2">LLM PROVIDER</h3>
+
+                <!-- Provider Selection -->
+                <div class="space-y-1 mb-4">
+                    <label class="font-bold text-sm">PROVIDER</label>
+                    <select id="providerSelect" onchange="onProviderChange()" class="neo-input w-full p-3 rounded-lg text-sm font-bold bg-white">
+                        <option value="gemini">Google Gemini</option>
+                        <option value="ollama">Ollama (Local)</option>
+                        <option value="openai-compatible">OpenAI-Compatible</option>
+                    </select>
+                </div>
+
+                <!-- Provider Hint -->
+                <div id="providerHint" class="text-xs text-slate-500 mb-4 bg-slate-50 border border-slate-200 rounded-lg p-2"></div>
+
+                <!-- API Key Field -->
+                <div id="fieldApiKey" class="space-y-1 mb-4">
+                    <label class="font-bold text-sm">API KEY</label>
+                    <input type="password" id="cfgApiKey" class="neo-input w-full p-3 rounded-lg text-sm code-font" placeholder="Your API key">
+                </div>
+
+                <!-- Base URL Field -->
+                <div id="fieldBaseUrl" class="space-y-1 mb-4 hidden">
+                    <label class="font-bold text-sm">BASE URL</label>
+                    <input type="text" id="cfgBaseUrl" class="neo-input w-full p-3 rounded-lg text-sm code-font" placeholder="http://localhost:11434">
+                </div>
+
+                <!-- Model Field -->
+                <div id="fieldModel" class="space-y-1 mb-4 hidden">
+                    <label class="font-bold text-sm">MODEL</label>
+                    <input type="text" id="cfgModel" class="neo-input w-full p-3 rounded-lg text-sm code-font" placeholder="llama3">
+                </div>
+
+                <div class="flex gap-4 mt-6">
                     <button onclick="closeModal()" class="neo-btn bg-white w-full py-3 rounded-lg">CANCEL</button>
-                    <button onclick="saveKey()" class="neo-btn bg-black text-white hover:bg-gray-800 w-full py-3 rounded-lg">CONNECT</button>
+                    <button onclick="saveConfig()" class="neo-btn bg-black text-white hover:bg-gray-800 w-full py-3 rounded-lg">CONNECT</button>
                 </div>
             </div>
         </div>
@@ -376,30 +404,113 @@
         lucide.createIcons();
 
         // State
-        let apiKey = "";
+        let providerConfig = {
+            provider: 'gemini',
+            apiKey: '',
+            baseUrl: '',
+            model: ''
+        };
         let currentStyle = {};
         let activeTab = 'analyze';
+
+        // Load saved config from localStorage
+        const saved = localStorage.getItem('styleMirrorConfig');
+        if (saved) {
+            try { providerConfig = JSON.parse(saved); } catch(e) {}
+        }
+
+        // --- Provider Config UI ---
+
+        const providerHints = {
+            gemini: 'Free tier available at <a href="https://ai.google.dev" target="_blank" class="underline font-bold">ai.google.dev</a>',
+            ollama: 'Free & local. Requires <a href="https://ollama.com" target="_blank" class="underline font-bold">Ollama</a> installed. Enable CORS: <span class="code-font">OLLAMA_ORIGINS=* ollama serve</span>',
+            'openai-compatible': 'Works with <a href="https://groq.com" target="_blank" class="underline font-bold">Groq</a> (free tier), Together.ai, LM Studio, etc.'
+        };
+
+        const providerLabels = {
+            gemini: 'Gemini',
+            ollama: 'Ollama',
+            'openai-compatible': 'OpenAI'
+        };
+
+        function onProviderChange() {
+            const p = document.getElementById('providerSelect').value;
+            document.getElementById('providerHint').innerHTML = providerHints[p] || '';
+
+            const showApiKey = p === 'gemini' || p === 'openai-compatible';
+            const showBaseUrl = p === 'ollama' || p === 'openai-compatible';
+            const showModel = p === 'ollama' || p === 'openai-compatible';
+
+            document.getElementById('fieldApiKey').classList.toggle('hidden', !showApiKey);
+            document.getElementById('fieldBaseUrl').classList.toggle('hidden', !showBaseUrl);
+            document.getElementById('fieldModel').classList.toggle('hidden', !showModel);
+
+            if (p === 'ollama') {
+                document.getElementById('cfgBaseUrl').placeholder = 'http://localhost:11434';
+                document.getElementById('cfgModel').placeholder = 'llama3, mistral, gemma2...';
+            } else if (p === 'openai-compatible') {
+                document.getElementById('cfgBaseUrl').placeholder = 'https://api.groq.com/openai';
+                document.getElementById('cfgModel').placeholder = 'llama-3.3-70b-versatile';
+            }
+        }
+
+        function openModal() {
+            // Populate modal from current config
+            document.getElementById('providerSelect').value = providerConfig.provider;
+            document.getElementById('cfgApiKey').value = providerConfig.apiKey || '';
+            document.getElementById('cfgBaseUrl').value = providerConfig.baseUrl || '';
+            document.getElementById('cfgModel').value = providerConfig.model || '';
+            onProviderChange();
+            modal.style.display = 'flex';
+        }
+
+        function saveConfig() {
+            const p = document.getElementById('providerSelect').value;
+            providerConfig.provider = p;
+            providerConfig.apiKey = document.getElementById('cfgApiKey').value.trim();
+            providerConfig.baseUrl = document.getElementById('cfgBaseUrl').value.trim();
+            providerConfig.model = document.getElementById('cfgModel').value.trim();
+
+            // Default base URL for Ollama
+            if (p === 'ollama' && !providerConfig.baseUrl) {
+                providerConfig.baseUrl = 'http://localhost:11434';
+            }
+
+            localStorage.setItem('styleMirrorConfig', JSON.stringify(providerConfig));
+            updateProviderButton();
+            closeModal();
+        }
+
+        function isProviderConfigured() {
+            const p = providerConfig.provider;
+            if (p === 'gemini') return !!providerConfig.apiKey;
+            if (p === 'ollama') return !!providerConfig.model;
+            if (p === 'openai-compatible') return !!providerConfig.baseUrl && !!providerConfig.model;
+            return false;
+        }
+
+        function updateProviderButton() {
+            const label = providerLabels[providerConfig.provider] || 'Config';
+            document.getElementById('providerBtnLabel').textContent = label + ' \u25BE';
+        }
 
         // --- UI Interaction ---
 
         function switchTab(tabId) {
             activeTab = tabId;
-            
+
             // Update Tab Buttons
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active');
-                btn.classList.remove('bg-blue-100', 'bg-emerald-100', 'bg-violet-100', 'bg-amber-100', 'bg-rose-100'); // Clean cleanup
+                btn.classList.remove('bg-blue-100', 'bg-emerald-100', 'bg-violet-100', 'bg-amber-100', 'bg-rose-100');
             });
 
-            // Highlight active tab with specific colors
             const activeBtn = document.getElementById(`tab-${tabId}`);
             activeBtn.classList.add('active');
-            
-            // Show/Hide Views
+
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
             document.getElementById(`view-${tabId}`).classList.remove('hidden');
 
-            // Handle specific logic for mimic custom input
             const mimicSelect = document.getElementById('mimicSelect');
             const mimicCustom = document.getElementById('mimicCustom');
             if (tabId === 'mimic') {
@@ -412,46 +523,41 @@
                 });
             }
         }
-        
+
         // Initial Tab Set
         switchTab('analyze');
 
         // Modal Logic
         const modal = document.getElementById('apiModal');
-        document.getElementById('apiKeyBtn').onclick = () => modal.classList.remove('hidden', 'flex');
-        document.getElementById('apiKeyBtn').onclick = () => modal.style.display = 'flex';
+        document.getElementById('apiKeyBtn').onclick = () => openModal();
         function closeModal() { modal.style.display = 'none'; }
-        function saveKey() {
-            apiKey = document.getElementById('apiKeyInput').value;
-            if(apiKey) {
-                closeModal();
-                // alert('API Key saved for this session.'); // Brutalist style doesn't need alerts, maybe just close
-            }
-        }
+
+        // Init button label
+        updateProviderButton();
 
         // --- Core Logic: Analysis ---
 
         async function analyzeText() {
             const text = document.getElementById('sampleInput').value;
             if (!text || text.length < 50) return alert("Please enter at least 50 words.");
-            
+
             await performAnalysis(text, 'analyzeBtnText', 'analyzeLoader');
         }
 
         async function analyzeQuickWrite() {
             const text = document.getElementById('quickWriteInput').value;
             if (!text || text.length < 50) return alert("Please write a bit more (min 50 words).");
-            
+
             await performAnalysis(text, null, 'quickWriteLoader');
         }
 
         async function performAnalysis(textSample, btnTextId, loaderId) {
-            if (!apiKey) return modal.style.display = 'flex';
-            
+            if (!isProviderConfigured()) return openModal();
+
             toggleLoader(loaderId, true);
             if(btnTextId) document.getElementById(btnTextId).textContent = "EXTRACTING...";
 
-            const systemPrompt = `You are an expert Writing Style Analyzer. 
+            const systemPrompt = `You are an expert Writing Style Analyzer.
             Analyze the provided text and extract a structured "Style DNA" profile.
             Return ONLY a JSON object with these keys:
             - tone: (string, comma separated keywords)
@@ -460,11 +566,11 @@
             - grammar: (string, specific syntax quirks)
             - descriptive: (string, how they describe things)
             - human_quirks: (string, specific things that make it sound human like contractions, specific transition words)
-            
+
             Do not include markdown formatting like \`\`\`json. Just the raw JSON string.`;
 
             try {
-                const response = await callGemini(systemPrompt, textSample);
+                const response = await callLLM(systemPrompt, textSample);
                 const data = JSON.parse(response);
                 populateProfile(data);
             } catch (error) {
@@ -477,13 +583,12 @@
         }
 
         function processQuestionnaire() {
-            // Map slider values to text descriptors
             const tones = ["Very Serious", "Serious", "Neutral", "Lighthearted", "Very Humorous"];
             const formalities = ["Very Casual/Slang", "Casual", "Neutral", "Formal", "Highly Academic"];
-            
+
             const tVal = document.getElementById('q-tone').value;
             const fVal = document.getElementById('q-formal').value;
-            
+
             const profile = {
                 tone: `${tones[tVal-1]}, ${formalities[fVal-1]}`,
                 structure: `Matches a ${formalities[fVal-1]} context.`,
@@ -492,7 +597,7 @@
                 descriptive: "Moderate use of adjectives.",
                 human_quirks: "Use natural contractions."
             };
-            
+
             populateProfile(profile);
         }
 
@@ -500,17 +605,17 @@
             const select = document.getElementById('mimicSelect');
             const custom = document.getElementById('mimicCustom');
             const target = select.value === 'custom' ? custom.value : select.value;
-            
-            if (!apiKey) return modal.style.display = 'flex';
+
+            if (!isProviderConfigured()) return openModal();
             if (!target) return alert("Please select or enter a persona.");
 
             toggleLoader('mimicLoader', true);
 
-            const prompt = `Generate a JSON Writing Style Profile for: ${target}. 
+            const prompt = `Generate a JSON Writing Style Profile for: ${target}.
             Return ONLY JSON with keys: tone, structure, vocab, grammar, descriptive, human_quirks.`;
 
             try {
-                const response = await callGemini(prompt, "Generate profile.");
+                const response = await callLLM(prompt, "Generate profile.");
                 const data = JSON.parse(response);
                 populateProfile(data);
             } catch (e) {
@@ -560,20 +665,16 @@
             document.getElementById('dna-structure').value = data.structure || "";
             document.getElementById('dna-vocab').value = data.vocab || "";
             document.getElementById('dna-grammar').value = data.grammar || "";
-            // Keep descriptive if it exists, otherwise empty
             if(document.getElementById('dna-descriptive')) {
                  document.getElementById('dna-descriptive').value = data.descriptive || "";
             }
             document.getElementById('dna-human').value = data.human_quirks || "";
-            
-            // Enable Generate Button
+
             const genBtn = document.getElementById('generateBtn');
             genBtn.disabled = false;
-            
-            // Visual feedback
-            // Smooth scroll on mobile only
+
             if(window.innerWidth < 1024) {
-                 const dnaSection = document.querySelector('.lg\\:col-span-4:nth-child(2)'); 
+                 const dnaSection = document.querySelector('.lg\\:col-span-4:nth-child(2)');
                  dnaSection.scrollIntoView({ behavior: 'smooth' });
             }
         }
@@ -595,30 +696,30 @@
             const format = document.getElementById('formatInput').value;
             const profile = getProfileFromUI();
 
-            if (!apiKey) return modal.style.display = 'flex';
+            if (!isProviderConfigured()) return openModal();
             if (!topic) return alert("Please enter a topic.");
 
             toggleLoader('genLoader', true);
-            
+
             const systemPrompt = `Act as a professional Ghostwriter.
             I will provide a "Style Profile" (DNA) and a Request.
             You MUST write the content adhering STRICTLY to the profile.
-            
+
             STYLE PROFILE:
             - Tone: ${profile.tone}
             - Structure: ${profile.structure}
             - Vocabulary: ${profile.vocab}
             - Grammar/Syntax: ${profile.grammar}
             - Human Quirks: ${profile.human_quirks}
-            
+
             REQUEST:
             Write a ${format} about: ${topic}.
-            
+
             Return only the content, formatted in Markdown.`;
 
             try {
-                const response = await callGemini(systemPrompt, "Go.");
-                
+                const response = await callLLM(systemPrompt, "Go.");
+
                 document.getElementById('result-placeholder').classList.add('hidden');
                 const resultDiv = document.getElementById('result-content');
                 resultDiv.classList.remove('hidden');
@@ -632,10 +733,24 @@
             }
         }
 
-        // --- Utilities ---
+        // --- Provider Abstraction Layer ---
+
+        function cleanResponse(text) {
+            if (!text) return text;
+            return text.replace(/^```(?:json)?\s*/gm, '').replace(/```\s*$/gm, '').trim();
+        }
+
+        async function callLLM(systemPrompt, userMsg) {
+            if (providerConfig.provider === 'gemini') {
+                return await callGemini(systemPrompt, userMsg);
+            } else {
+                return await callOpenAICompatible(systemPrompt, userMsg);
+            }
+        }
 
         async function callGemini(system, userMsg) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const model = providerConfig.model || 'gemini-2.5-flash-preview-05-20';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${providerConfig.apiKey}`;
             const payload = {
                 contents: [{ parts: [{ text: userMsg }] }],
                 systemInstruction: { parts: [{ text: system }] }
@@ -647,17 +762,48 @@
                 body: JSON.stringify(payload)
             });
 
-            if (!response.ok) throw new Error("API Error");
-            const data = await response.json();
-            
-            let text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            
-            // Clean JSON if needed
-            if (text && (text.startsWith('```json') || text.startsWith('{'))) {
-                 text = text.replace(/```json/g, '').replace(/```/g, '');
+            if (!response.ok) {
+                const err = await response.text();
+                throw new Error(`Gemini API Error: ${response.status} - ${err}`);
             }
-            return text;
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            return cleanResponse(text);
         }
+
+        async function callOpenAICompatible(system, userMsg) {
+            const baseUrl = providerConfig.baseUrl.replace(/\/+$/, '');
+            const url = `${baseUrl}/v1/chat/completions`;
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (providerConfig.apiKey) {
+                headers['Authorization'] = `Bearer ${providerConfig.apiKey}`;
+            }
+
+            const payload = {
+                model: providerConfig.model,
+                messages: [
+                    { role: 'system', content: system },
+                    { role: 'user', content: userMsg }
+                ]
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const err = await response.text();
+                throw new Error(`API Error: ${response.status} - ${err}`);
+            }
+            const data = await response.json();
+            const text = data.choices?.[0]?.message?.content;
+            return cleanResponse(text);
+        }
+
+        // --- Utilities ---
 
         function toggleLoader(id, show) {
             const el = document.getElementById(id);
@@ -667,7 +813,7 @@
         function downloadProfile() {
             const profile = getProfileFromUI();
             if(!profile.tone) return alert("No profile generated yet.");
-            
+
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(profile, null, 2));
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.setAttribute("href", dataStr);
@@ -681,7 +827,6 @@
             const content = document.getElementById('result-content').innerText;
             if(!content) return;
             navigator.clipboard.writeText(content);
-            // Visual feedback handled by button hover state in this style
         }
 
     </script>
