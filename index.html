@@ -4,9 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Style Mirror - AI Writing Assistant</title>
+    <meta name="description" content="Style Mirror analyzes your writing and builds a Style DNA profile so AI can ghostwrite in your voice.">
+    <meta property="og:title" content="Style Mirror - AI Writing Assistant">
+    <meta property="og:description" content="Define your voice. Write real. AI-powered writing style analysis and content generation.">
+    <meta property="og:url" content="https://stylemirror.app">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Style Mirror - AI Writing Assistant">
+    <meta name="twitter:description" content="Define your voice. Write real. AI-powered writing style analysis and content generation.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✒️</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/lucide@0.460.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { 
@@ -89,6 +98,32 @@
             animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Toast Notifications */
+        #toast-container {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .toast {
+            padding: 0.75rem 1.25rem;
+            border: 2px solid black;
+            box-shadow: 4px 4px 0px 0px black;
+            font-weight: 700;
+            font-size: 0.875rem;
+            border-radius: 0.5rem;
+            animation: toast-in 0.3s ease forwards;
+            max-width: 22rem;
+        }
+        .toast.toast-error { background: #fca5a5; }
+        .toast.toast-info { background: #bfdbfe; }
+        .toast.toast-out { animation: toast-out 0.3s ease forwards; }
+        @keyframes toast-in { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes toast-out { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
     </style>
 </head>
 <body class="min-h-screen text-black p-4 md:p-8">
@@ -180,7 +215,7 @@
                             </div>
                             <textarea id="quickWriteInput" class="neo-input w-full flex-1 p-4 rounded-lg text-sm code-font mb-4 resize-none bg-slate-50" placeholder="Start writing..."></textarea>
                             <button onclick="analyzeQuickWrite()" class="neo-btn bg-emerald-400 w-full py-3 rounded-lg flex justify-center items-center gap-2">
-                                <span>ANALYZE THIS</span>
+                                <span id="quickWriteBtnText">ANALYZE THIS</span>
                                 <div id="quickWriteLoader" class="loader hidden"></div>
                             </button>
                         </div>
@@ -262,7 +297,10 @@
                             <i data-lucide="dna" class="w-5 h-5"></i>
                             DNA PROFILE
                         </h2>
-                        <button onclick="downloadProfile()" class="text-xs font-bold underline hover:text-purple-600">SAVE .JSON</button>
+                        <div class="flex gap-3">
+                            <button onclick="document.getElementById('jsonFileInput').click()" class="text-xs font-bold underline hover:text-purple-600">LOAD .JSON</button>
+                            <button onclick="downloadProfile()" class="text-xs font-bold underline hover:text-purple-600">SAVE .JSON</button>
+                        </div>
                     </div>
 
                     <div class="p-4 flex-1 overflow-y-auto bg-white">
@@ -289,6 +327,10 @@
                              <div class="bg-slate-50 p-3 border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
                                 <label class="text-xs font-black bg-black text-white px-2 py-0.5 rounded-sm inline-block mb-2">GRAMMAR</label>
                                 <textarea id="dna-grammar" class="w-full bg-transparent text-sm resize-none focus:outline-none font-medium" rows="2"></textarea>
+                            </div>
+                             <div class="bg-slate-50 p-3 border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                                <label class="text-xs font-black bg-black text-white px-2 py-0.5 rounded-sm inline-block mb-2">DESCRIPTIVE</label>
+                                <textarea id="dna-descriptive" class="w-full bg-transparent text-sm resize-none focus:outline-none font-medium" rows="2"></textarea>
                             </div>
                              <div class="bg-slate-50 p-3 border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
                                 <label class="text-xs font-black bg-black text-white px-2 py-0.5 rounded-sm inline-block mb-2">QUIRKS</label>
@@ -341,7 +383,7 @@
                             <div id="genLoader" class="loader hidden" style="border-color: #333; border-top-color: white;"></div>
                         </button>
 
-                        <div class="flex-1 mt-4 relative group">
+                        <div class="flex-1 mt-4 relative group min-h-[300px]">
                             <div class="absolute inset-0 bg-slate-100 border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]"></div>
                             
                             <!-- Result Container -->
@@ -402,18 +444,42 @@
                     <input type="text" id="cfgModel" class="neo-input w-full p-3 rounded-lg text-sm code-font" placeholder="llama3">
                 </div>
 
-                <div class="flex gap-4 mt-6">
+                <p class="text-xs text-slate-500 mt-4 bg-slate-50 border border-slate-200 rounded-lg p-2 flex items-start gap-1.5">
+                    <i data-lucide="shield" class="w-3.5 h-3.5 mt-0.5 shrink-0"></i>
+                    Key stored in this browser session only. It will be cleared when you close this tab.
+                </p>
+
+                <div class="flex gap-4 mt-4">
                     <button onclick="closeModal()" class="neo-btn bg-white w-full py-3 rounded-lg">CANCEL</button>
                     <button onclick="saveConfig()" class="neo-btn bg-black text-white hover:bg-gray-800 w-full py-3 rounded-lg">CONNECT</button>
                 </div>
             </div>
         </div>
 
+        <!-- Toast Container -->
+        <div id="toast-container"></div>
+
+        <!-- Hidden file input for JSON import -->
+        <input type="file" id="jsonFileInput" accept=".json" class="hidden">
+
     </div>
 
     <script>
         // Initialize Icons
         lucide.createIcons();
+
+        // Toast notifications
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('toast-out');
+                toast.addEventListener('animationend', () => toast.remove());
+            }, 3000);
+        }
 
         // State
         let providerConfig = {
@@ -425,8 +491,8 @@
         let currentStyle = {};
         let activeTab = 'analyze';
 
-        // Load saved config from localStorage
-        const saved = localStorage.getItem('styleMirrorConfig');
+        // Load saved config from sessionStorage
+        const saved = sessionStorage.getItem('styleMirrorConfig');
         if (saved) {
             try { providerConfig = JSON.parse(saved); } catch(e) {}
         }
@@ -488,7 +554,7 @@
                 providerConfig.baseUrl = 'http://localhost:11434';
             }
 
-            localStorage.setItem('styleMirrorConfig', JSON.stringify(providerConfig));
+            sessionStorage.setItem('styleMirrorConfig', JSON.stringify(providerConfig));
             updateProviderButton();
             closeModal();
         }
@@ -551,23 +617,25 @@
 
         async function analyzeText() {
             const text = document.getElementById('sampleInput').value;
-            if (!text || text.length < 50) return alert("Please enter at least 50 words.");
+            if (!text || text.length < 50) return showToast("Please enter at least 50 words.", "error");
 
             await performAnalysis(text, 'analyzeBtnText', 'analyzeLoader');
         }
 
         async function analyzeQuickWrite() {
             const text = document.getElementById('quickWriteInput').value;
-            if (!text || text.length < 50) return alert("Please write a bit more (min 50 words).");
+            if (!text || text.length < 50) return showToast("Please write a bit more (min 50 words).", "error");
 
-            await performAnalysis(text, null, 'quickWriteLoader');
+            await performAnalysis(text, 'quickWriteBtnText', 'quickWriteLoader');
         }
 
         async function performAnalysis(textSample, btnTextId, loaderId) {
             if (!isProviderConfigured()) return openModal();
 
             toggleLoader(loaderId, true);
-            if(btnTextId) document.getElementById(btnTextId).textContent = "EXTRACTING...";
+            const btnEl = btnTextId ? document.getElementById(btnTextId) : null;
+            const originalBtnText = btnEl ? btnEl.textContent : '';
+            if(btnEl) btnEl.textContent = "ANALYZING...";
 
             const systemPrompt = `You are an expert Writing Style Analyzer.
             Analyze the provided text and extract a structured "Style DNA" profile.
@@ -587,10 +655,10 @@
                 populateProfile(data);
             } catch (error) {
                 console.error(error);
-                alert("Error analyzing text. Please try again.");
+                showToast("Error analyzing text. Please try again.", "error");
             } finally {
                 toggleLoader(loaderId, false);
-                if(btnTextId) document.getElementById(btnTextId).textContent = "EXTRACT STYLE DNA";
+                if(btnEl) btnEl.textContent = originalBtnText;
             }
         }
 
@@ -619,7 +687,7 @@
             const target = select.value === 'custom' ? custom.value : select.value;
 
             if (!isProviderConfigured()) return openModal();
-            if (!target) return alert("Please select or enter a persona.");
+            if (!target) return showToast("Please select or enter a persona.", "error");
 
             toggleLoader('mimicLoader', true);
 
@@ -631,7 +699,7 @@
                 const data = JSON.parse(response);
                 populateProfile(data);
             } catch (e) {
-                alert("Error generating persona.");
+                showToast("Error generating persona.", "error");
             } finally {
                 toggleLoader('mimicLoader', false);
             }
@@ -677,9 +745,7 @@
             document.getElementById('dna-structure').value = data.structure || "";
             document.getElementById('dna-vocab').value = data.vocab || "";
             document.getElementById('dna-grammar').value = data.grammar || "";
-            if(document.getElementById('dna-descriptive')) {
-                 document.getElementById('dna-descriptive').value = data.descriptive || "";
-            }
+            document.getElementById('dna-descriptive').value = data.descriptive || "";
             document.getElementById('dna-human').value = data.human_quirks || "";
 
             const genBtn = document.getElementById('generateBtn');
@@ -697,6 +763,7 @@
                 structure: document.getElementById('dna-structure').value,
                 vocab: document.getElementById('dna-vocab').value,
                 grammar: document.getElementById('dna-grammar').value,
+                descriptive: document.getElementById('dna-descriptive').value,
                 human_quirks: document.getElementById('dna-human').value,
             };
         }
@@ -709,7 +776,7 @@
             const profile = getProfileFromUI();
 
             if (!isProviderConfigured()) return openModal();
-            if (!topic) return alert("Please enter a topic.");
+            if (!topic) return showToast("Please enter a topic.", "error");
 
             toggleLoader('genLoader', true);
 
@@ -722,6 +789,7 @@
             - Structure: ${profile.structure}
             - Vocabulary: ${profile.vocab}
             - Grammar/Syntax: ${profile.grammar}
+            - Descriptive Style: ${profile.descriptive}
             - Human Quirks: ${profile.human_quirks}
 
             REQUEST:
@@ -739,7 +807,7 @@
 
             } catch (e) {
                 console.error(e);
-                alert("Error generating content.");
+                showToast("Error generating content.", "error");
             } finally {
                 toggleLoader('genLoader', false);
             }
@@ -824,7 +892,7 @@
 
         function downloadProfile() {
             const profile = getProfileFromUI();
-            if(!profile.tone) return alert("No profile generated yet.");
+            if(!profile.tone) return showToast("No profile generated yet.", "error");
 
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(profile, null, 2));
             const downloadAnchorNode = document.createElement('a');
@@ -840,6 +908,24 @@
             if(!content) return;
             navigator.clipboard.writeText(content);
         }
+
+        // JSON Profile Import
+        document.getElementById('jsonFileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    populateProfile(data);
+                    showToast("Profile loaded successfully.", "info");
+                } catch (err) {
+                    showToast("Invalid JSON file.", "error");
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        });
 
     </script>
 </body>
