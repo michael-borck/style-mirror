@@ -1,5 +1,9 @@
 # Style Mirror
 
+<!-- BADGES:START -->
+[![client-side](https://img.shields.io/badge/-client--side-blue?style=flat-square)](https://github.com/topics/client-side) [![communication-tools](https://img.shields.io/badge/-communication--tools-blue?style=flat-square)](https://github.com/topics/communication-tools) [![conversation-analysis](https://img.shields.io/badge/-conversation--analysis-blue?style=flat-square)](https://github.com/topics/conversation-analysis) [![frontend](https://img.shields.io/badge/-frontend-blue?style=flat-square)](https://github.com/topics/frontend) [![html](https://img.shields.io/badge/-html-e34f26?style=flat-square)](https://github.com/topics/html) [![javascript](https://img.shields.io/badge/-javascript-f7df1e?style=flat-square)](https://github.com/topics/javascript) [![style-analysis](https://img.shields.io/badge/-style--analysis-blue?style=flat-square)](https://github.com/topics/style-analysis) [![text-processing](https://img.shields.io/badge/-text--processing-blue?style=flat-square)](https://github.com/topics/text-processing) [![web-app](https://img.shields.io/badge/-web--app-blue?style=flat-square)](https://github.com/topics/web-app) [![writing-analysis](https://img.shields.io/badge/-writing--analysis-blue?style=flat-square)](https://github.com/topics/writing-analysis)
+<!-- BADGES:END -->
+
 AI-powered writing style analyzer and content generator. Paste your writing, extract your "Style DNA", then generate new content that matches your voice.
 
 **[Try it live](https://stylemirror.serveur.au)**
